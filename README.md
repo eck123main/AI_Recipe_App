@@ -74,14 +74,46 @@ NEXT_PUBLIC_SUPABASE_URL=your_supabase_project_url
 NEXT_PUBLIC_SUPABASE_ANON_KEY=your_supabase_anon_key
 ```
 
-**5. Set up Supabase database**
+## Database Setup
 
-1. Create a free account at [supabase.com](https://supabase.com)
-2. Create a new project
-3. Go to the SQL Editor and run the contents of `supabase-setup.sql`
-4. Copy your project URL and anon key from Settings > API
+To enable the recipe sharing features, you need to set up a Supabase database. Follow these steps:
 
-**6. Run the development server**
+### 1. Create a Supabase Account and Project
+1. Go to [supabase.com](https://supabase.com) and sign up for a free account
+2. Click "New Project" in your dashboard
+3. Choose your organization and enter a project name (e.g., "fridgeiq-recipes")
+4. Select a database password (save this securely)
+5. Choose a region closest to your users
+6. Click "Create new project"
+
+### 2. Set Up the Database Schema
+1. Once your project is created, go to the "SQL Editor" tab in your Supabase dashboard
+2. Copy the entire contents of the `supabase-setup.sql` file from your project root
+3. Paste it into the SQL editor
+4. Click "Run" to execute the SQL script
+
+This will create:
+- A `recipes` table to store shared recipes
+- A `ratings` table for user ratings and comments
+- Proper indexes for performance
+- Row Level Security (RLS) policies allowing public access for sharing
+
+### 3. Configure Environment Variables
+1. In your Supabase dashboard, go to "Settings" → "API"
+2. Copy the "Project URL" and "anon public" key
+3. Add these to your `.env.local` file (as shown in step 4 above)
+
+### 4. Verify Setup
+- After running the dev server, visit your app's feed page (`/feed`) to see if recipes load
+- Try creating a new recipe to test the sharing functionality
+- Check the Supabase dashboard "Table Editor" to see if data is being stored
+
+### Security Notes
+- The current setup allows anonymous recipe sharing and rating
+- In production, consider adding user authentication for better spam control
+- The rating system uses IP hashing to prevent multiple ratings from the same IP
+
+**5. Run the development server**
 ```bash
 npm run dev
 ```
