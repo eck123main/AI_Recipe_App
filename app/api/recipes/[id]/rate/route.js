@@ -6,7 +6,7 @@ export async function POST(request, { params }) {
   if (!supabase) {
     return NextResponse.json({ error: 'Database not configured' }, { status: 500 })
   }
-  const { id } = params
+  const { id } = await params
   const { rating, comment } = await request.json()
 
   // Simple IP hashing for basic spam prevention

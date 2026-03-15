@@ -795,6 +795,5 @@ export default function SharedRecipe() {
           )}
         </div>
       </div>
-    </>
+    </div>
   )
-}

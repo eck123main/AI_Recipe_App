@@ -5,7 +5,7 @@ export async function GET(request, { params }) {
   if (!supabase) {
     return NextResponse.json({ error: 'Database not configured' }, { status: 500 })
   }
-  const { id } = params
+  const { id } = await params
 
   try {
     const { data, error } = await supabase
