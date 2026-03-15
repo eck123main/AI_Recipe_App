@@ -2,13 +2,14 @@
 import { useState, useRef, useCallback } from "react";
 import Link from "next/link";
 import { useAuth } from "./components/AuthProvider";
+import LoginModal from "./components/LoginModal";
 
 const DIETARY_MODES = ["maintain", "bulk", "cut", "vegetarian", "vegan", "keto"];
 const COMMON_ALLERGIES = ["Gluten", "Dairy", "Nuts", "Eggs", "Soy", "Shellfish"];
 const RELIGIOUS_DIETS = ["Halal", "Kosher", "Hindu Vegetarian", "Jain", "Buddhist"];
 
 export default function Home() {
-  const { user } = useAuth();
+  const { user, signOut } = useAuth();
   const [image, setImage] = useState(null);
   const [imagePreview, setImagePreview] = useState(null);
   const [ingredients, setIngredients] = useState([]);
@@ -23,6 +24,7 @@ export default function Home() {
   const [manualInput, setManualInput] = useState("");
   const [manualIngredients, setManualIngredients] = useState([]);
   const [warnings, setWarnings] = useState([]);
+  const [showLogin, setShowLogin] = useState(false);
   const fileInputRef = useRef(null);
 
   const handleImage = (file) => {
@@ -180,7 +182,7 @@ export default function Home() {
         }
 
         header {
-          display: flex; align-items: center; justify-content: space-between; padding: 32px 0 64px;
+          display: flex; align-items: center; justify-content: flex-start; padding: 32px 0 64px;
         }
 
         .logo { display: flex; align-items: center; gap: 12px; }
@@ -433,7 +435,7 @@ export default function Home() {
               <span className="logo-name">Fridge<em>IQ</em></span>
             </div>
           </button>
-          <div style={{ display: "flex", gap: "12px" }}>
+          <div style={{ display: "flex", gap: "12px", marginLeft: "24px" }}>
             <Link href="/feed" style={{
               padding: "14px 20px", fontSize: "15px",
               border: "1px solid rgba(238,234,227,0.2)",
@@ -471,6 +473,41 @@ export default function Home() {
               onMouseEnter={e => { e.target.style.borderColor = "rgba(238,234,227,0.5)"; e.target.style.color = "#eeeae3"; }}
               onMouseLeave={e => { e.target.style.borderColor = "rgba(238,234,227,0.2)"; e.target.style.color = "rgba(238,234,227,0.7)"; }}
               >My recipes</Link>
+            )}
+            {user ? (
+              <button
+                onClick={() => signOut()}
+                style={{
+                  padding: "14px 20px", fontSize: "15px",
+                  border: "1px solid rgba(238,234,227,0.2)",
+                  color: "rgba(238,234,227,0.7)",
+                  background: "transparent", cursor: "pointer", transition: "all 0.2s",
+                  fontFamily: "'DM Sans', sans-serif", fontWeight: 500,
+                  letterSpacing: "-0.2px", borderRadius: "100px",
+                  flexShrink: 0
+                }}
+                onMouseEnter={e => { e.target.style.borderColor = "rgba(238,234,227,0.5)"; e.target.style.color = "#eeeae3"; }}
+                onMouseLeave={e => { e.target.style.borderColor = "rgba(238,234,227,0.2)"; e.target.style.color = "rgba(238,234,227,0.7)"; }}
+              >
+                Logout
+              </button>
+            ) : (
+              <button
+                onClick={() => setShowLogin(true)}
+                style={{
+                  padding: "14px 20px", fontSize: "15px",
+                  border: "1px solid rgba(238,234,227,0.2)",
+                  color: "rgba(238,234,227,0.7)",
+                  background: "transparent", cursor: "pointer", transition: "all 0.2s",
+                  fontFamily: "'DM Sans', sans-serif", fontWeight: 500,
+                  letterSpacing: "-0.2px", borderRadius: "100px",
+                  flexShrink: 0
+                }}
+                onMouseEnter={e => { e.target.style.borderColor = "rgba(238,234,227,0.5)"; e.target.style.color = "#eeeae3"; }}
+                onMouseLeave={e => { e.target.style.borderColor = "rgba(238,234,227,0.2)"; e.target.style.color = "rgba(238,234,227,0.7)"; }}
+              >
+                Login
+              </button>
             )}
           </div>
         </header>
@@ -785,6 +822,8 @@ export default function Home() {
           </div>
         )}
       </div>
+
+      <LoginModal open={showLogin} onClose={() => setShowLogin(false)} />
     </>
   );
 }
