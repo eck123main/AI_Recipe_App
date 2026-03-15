@@ -2,9 +2,11 @@
 import { useState } from 'react'
 import Link from 'next/link'
 import { useRouter } from 'next/navigation'
+import { useAuth } from '../components/AuthProvider'
 
 export default function CreateRecipe() {
   const router = useRouter()
+  const { session } = useAuth()
   const [formData, setFormData] = useState({
     title: '',
     description: '',
@@ -96,9 +98,12 @@ export default function CreateRecipe() {
         steps: cleanedSteps
       }
 
+      const headers = { 'Content-Type': 'application/json' }
+      if (session?.access_token) headers.Authorization = `Bearer ${session.access_token}`
+
       const res = await fetch('/api/recipes', {
         method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
+        headers,
         body: JSON.stringify(recipeData)
       })
 

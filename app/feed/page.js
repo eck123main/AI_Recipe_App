@@ -1,5 +1,5 @@
 'use client'
-import { useState, useEffect } from 'react'
+import { useState, useEffect, useCallback } from 'react'
 import Link from 'next/link'
 
 export default function Feed() {
@@ -9,11 +9,7 @@ export default function Feed() {
   const [offset, setOffset] = useState(0)
   const limit = 20
 
-  useEffect(() => {
-    fetchRecipes()
-  }, [offset])
-
-  const fetchRecipes = async () => {
+  const fetchRecipes = useCallback(async () => {
     try {
       const res = await fetch(`/api/recipes?limit=${limit}&offset=${offset}`)
       if (!res.ok) throw new Error('Failed to fetch recipes')
@@ -24,7 +20,11 @@ export default function Feed() {
     } finally {
       setLoading(false)
     }
-  }
+  }, [offset])
+
+  useEffect(() => {
+    fetchRecipes()
+  }, [fetchRecipes])
 
   const loadMore = () => {
     setOffset(prev => prev + limit)

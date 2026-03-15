@@ -1,11 +1,13 @@
 "use client";
 import { useState, useRef, useCallback } from "react";
 import Link from "next/link";
+import { useAuth } from "./components/AuthProvider";
 
 const DIETARY_MODES = ["maintain", "bulk", "cut", "vegetarian", "vegan", "keto"];
 const COMMON_ALLERGIES = ["Gluten", "Dairy", "Nuts", "Eggs", "Soy", "Shellfish"];
 
 export default function Home() {
+  const { user, session } = useAuth();
   const [image, setImage] = useState(null);
   const [imagePreview, setImagePreview] = useState(null);
   const [ingredients, setIngredients] = useState([]);
@@ -65,13 +67,17 @@ export default function Home() {
     setStep("generating");
     setError(null);
     try {
+      const headers = { "Content-Type": "application/json" };
+      if (session?.access_token) {
+        headers.Authorization = `Bearer ${session.access_token}`;
+      }
       const res = await fetch("/api/generate", {
         method: "POST",
-        headers: { "Content-Type": "application/json" },
+        headers,
         body: JSON.stringify({
           ingredients,
           profile: { dietary_mode: dietaryMode, allergies },
-          share: shareRecipe,
+          share: shareRecipe && Boolean(user),
         }),
       });
       const data = await res.json();
@@ -534,8 +540,8 @@ export default function Home() {
         {step === "upload" && (
           <div>
             <div className="hero">
-              <h1>What's in your<br /><em>fridge?</em></h1>
-              <p>Upload a photo — we'll figure out the recipe.</p>
+              <h1>What&apos;s in your<br /><em>fridge?</em></h1>
+              <p>Upload a photo — we&apos;ll figure out the recipe.</p>
             </div>
 
             <div
@@ -635,11 +641,17 @@ export default function Home() {
                   checked={shareRecipe}
                   onChange={(e) => setShareRecipe(e.target.checked)}
                   className="rounded"
+                  disabled={!user}
                 />
-                <span>Share this recipe with the community</span>
+                <span>
+                  Share this recipe with the community
+                  {!user ? " (login to share)" : ""}
+                </span>
               </label>
             </div>
-            <button className="btn-primary" onClick={generateRecipe}>Generate my recipe →</button>
+            <button className="btn-primary" onClick={generateRecipe}>
+              Generate my recipe →
+            </button>
           </div>
         )}
 
