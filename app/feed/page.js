@@ -318,12 +318,10 @@ export default function Feed() {
               <p className="recipe-desc">{recipe.description}</p>
               <div className="recipe-meta">
                 <span>{recipe.servings} servings • {recipe.prep_time + recipe.cook_time} min</span>
-                {recipe.ratings_count > 0 && (
-                  <div className="recipe-rating">
-                    <span>★</span>
-                    <span>{recipe.average_rating.toFixed(1)} ({recipe.ratings_count})</span>
-                  </div>
-                )}
+                <div className="recipe-rating">
+                  <span>★</span>
+                  <span>{recipe.ratings_count > 0 ? `${recipe.average_rating.toFixed(1)} (${recipe.ratings_count})` : 'Not rated yet'}</span>
+                </div>
               </div>
             </Link>
           ))}
