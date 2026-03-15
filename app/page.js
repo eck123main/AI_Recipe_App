@@ -147,14 +147,14 @@ export default function Home() {
           background-size: 160px;
         }
 
-        .page {
-          position: relative;
-          z-index: 2;
-          max-width: 900px;
-          margin: 0 auto;
-          padding: 0 48px 100px;
-        }
 
+ .page {
+  position: relative;
+  z-index: 2;
+  max-width: 680px;
+  margin: 0 auto;
+  padding: 0 32px 100px;
+}
         header {
           display: flex;
           align-items: center;
@@ -177,11 +177,11 @@ export default function Home() {
         }
 
         .logo-name {
-          font-family: 'Instrument Serif', serif;
-          font-size: 24px;
-          letter-spacing: -0.4px;
-          color: #eeeae3;
-        }
+  font-family: 'Instrument Serif', serif;
+  font-size: 32px;
+  letter-spacing: -0.4px;
+  color: #eeeae3;
+}
 
         .logo-name em { font-style: normal; color: #4ade80; }
 
@@ -201,13 +201,13 @@ export default function Home() {
         .hero { margin-bottom: 52px; }
 
         .hero h1 {
-          font-family: 'Instrument Serif', serif;
-          font-size: clamp(52px, 7vw, 80px);
-          line-height: 1.0;
-          letter-spacing: -2px;
-          margin-bottom: 16px;
-          color: #eeeae3;
-        }
+  font-family: 'Instrument Serif', serif;
+  font-size: clamp(40px, 5vw, 60px);
+  line-height: 1.0;
+  letter-spacing: -2px;
+  margin-bottom: 16px;
+  color: #eeeae3;
+}
 
         .hero h1 em {
           font-style: italic;
@@ -502,10 +502,30 @@ export default function Home() {
             <div className="logo-icon">🧊</div>
             <span className="logo-name">Fridge<em>IQ</em></span>
           </div>
-          <div className="flex gap-4">
-            <Link href="/feed" className="text-blue-500 hover:underline">Browse shared recipes</Link>
-            <Link href="/create-recipe" className="text-green-500 hover:underline">Create custom recipe</Link>
-          </div>
+          <div style={{ display: "flex", gap: "12px" }}>
+  <Link href="/feed" style={{
+    padding: "14px 32px", fontSize: "15px",
+    border: "1px solid rgba(238,234,227,0.2)",
+    color: "rgba(238,234,227,0.7)", fontSize: "15px",
+    textDecoration: "none", transition: "all 0.2s",
+    fontFamily: "'DM Sans', sans-serif", fontWeight: 500,
+    letterSpacing: "-0.2px"
+  }}
+  onMouseEnter={e => { e.target.style.borderColor = "rgba(238,234,227,0.5)"; e.target.style.color = "#eeeae3"; }}
+  onMouseLeave={e => { e.target.style.borderColor = "rgba(238,234,227,0.2)"; e.target.style.color = "rgba(238,234,227,0.7)"; }}
+  >Browse recipes</Link>
+  <Link href="/create-recipe" style={{
+    padding: "14px 32px", fontSize: "15px",
+    border: "1px solid rgba(238,234,227,0.2)",
+    color: "rgba(238,234,227,0.7)", fontSize: "15px",
+    textDecoration: "none", transition: "all 0.2s",
+    fontFamily: "'DM Sans', sans-serif", fontWeight: 500,
+    letterSpacing: "-0.2px"
+  }}
+  onMouseEnter={e => { e.target.style.borderColor = "rgba(238,234,227,0.5)"; e.target.style.color = "#eeeae3"; }}
+  onMouseLeave={e => { e.target.style.borderColor = "rgba(238,234,227,0.2)"; e.target.style.color = "rgba(238,234,227,0.7)"; }}
+  >Create recipe</Link>
+</div>
           {step !== "upload" && (
             <button className="back-btn" onClick={reset}>← Start over</button>
           )}
