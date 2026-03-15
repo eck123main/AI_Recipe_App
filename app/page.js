@@ -4,6 +4,7 @@ import Link from "next/link";
 
 const DIETARY_MODES = ["maintain", "bulk", "cut", "vegetarian", "vegan", "keto"];
 const COMMON_ALLERGIES = ["Gluten", "Dairy", "Nuts", "Eggs", "Soy", "Shellfish"];
+const RELIGIOUS_DIETS = ["Halal", "Kosher", "Hindu Vegetarian", "Jain", "Buddhist"];
 
 export default function Home() {
   const [image, setImage] = useState(null);
@@ -12,12 +13,14 @@ export default function Home() {
   const [recipe, setRecipe] = useState(null);
   const [dietaryMode, setDietaryMode] = useState("maintain");
   const [allergies, setAllergies] = useState([]);
+  const [religiousDiet, setReligiousDiet] = useState(null);
   const [step, setStep] = useState("upload");
   const [error, setError] = useState(null);
   const [shareRecipe, setShareRecipe] = useState(false);
   const [dragging, setDragging] = useState(false);
   const [manualInput, setManualInput] = useState("");
   const [manualIngredients, setManualIngredients] = useState([]);
+  const [warnings, setWarnings] = useState([]);
   const fileInputRef = useRef(null);
 
   const handleImage = (file) => {
@@ -53,6 +56,7 @@ export default function Home() {
     if (!image && manualIngredients.length === 0) return;
     setStep("scanning");
     setError(null);
+    setWarnings([]);
     try {
       let scanned = [];
       if (image) {
@@ -68,7 +72,21 @@ export default function Home() {
       }
       const allNames = scanned.map((i) => (typeof i === "string" ? i : i.name).toLowerCase());
       const extras = manualIngredients.filter((i) => !allNames.includes(i.name.toLowerCase()));
-      setIngredients([...scanned, ...extras]);
+      const merged = [...scanned, ...extras];
+      setIngredients(merged);
+
+      // Run validation
+      const valRes = await fetch("/api/validate", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          ingredients: merged,
+          profile: { dietary_mode: dietaryMode, allergies, religious_diet: religiousDiet }
+        })
+      });
+      const warningList = await valRes.json();
+      setWarnings(warningList);
+
       setStep("ingredients");
     } catch (e) {
       setError(e.message);
@@ -85,7 +103,7 @@ export default function Home() {
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
           ingredients,
-          profile: { dietary_mode: dietaryMode, allergies },
+          profile: { dietary_mode: dietaryMode, allergies, religious_diet: religiousDiet },
           share: shareRecipe,
         }),
       });
@@ -108,6 +126,17 @@ export default function Home() {
     setError(null);
     setManualInput("");
     setManualIngredients([]);
+    setWarnings([]);
+  };
+
+  const formatIngredient = (ing) => {
+    if (typeof ing === "string") return ing;
+    const qty = ing.quantity && ing.unit && ing.unit !== "pieces"
+      ? `${ing.quantity} ${ing.unit} `
+      : ing.quantity && ing.unit !== "pieces"
+      ? `${ing.quantity} `
+      : "";
+    return `${qty}${ing.name ?? ing}`.trim();
   };
 
   return (
@@ -125,377 +154,201 @@ export default function Home() {
         }
 
         .bg-layer {
-          position: fixed;
-          inset: 0;
-          pointer-events: none;
-          z-index: 0;
-          overflow: hidden;
+          position: fixed; inset: 0; pointer-events: none; z-index: 0; overflow: hidden;
         }
-
         .bg-layer::before {
-          content: '';
-          position: absolute;
-          top: -30%;
-          left: -10%;
-          width: 70%;
-          height: 70%;
+          content: ''; position: absolute; top: -30%; left: -10%; width: 70%; height: 70%;
           background: radial-gradient(ellipse, rgba(74,222,128,0.09) 0%, transparent 65%);
           filter: blur(40px);
         }
-
         .bg-layer::after {
-          content: '';
-          position: absolute;
-          bottom: -20%;
-          right: -10%;
-          width: 60%;
-          height: 60%;
+          content: ''; position: absolute; bottom: -20%; right: -10%; width: 60%; height: 60%;
           background: radial-gradient(ellipse, rgba(250,204,21,0.055) 0%, transparent 65%);
           filter: blur(40px);
         }
 
         .grain {
-          position: fixed;
-          inset: 0;
-          pointer-events: none;
-          z-index: 1;
-          opacity: 0.04;
+          position: fixed; inset: 0; pointer-events: none; z-index: 1; opacity: 0.04;
           background-image: url("data:image/svg+xml,%3Csvg viewBox='0 0 200 200' xmlns='http://www.w3.org/2000/svg'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.85' numOctaves='4' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23n)'/%3E%3C/svg%3E");
           background-size: 160px;
         }
 
+        .page {
+          position: relative; z-index: 2; max-width: 900px; margin: 0 auto; padding: 0 48px 100px;
+        }
 
- .page {
-  position: relative;
-  z-index: 2;
-  max-width: 680px;
-  margin: 0 auto;
-  padding: 0 32px 100px;
-}
         header {
-          display: flex;
-          align-items: center;
-          justify-content: space-between;
-          padding: 32px 0 64px;
+          display: flex; align-items: center; justify-content: space-between; padding: 32px 0 64px;
         }
 
         .logo { display: flex; align-items: center; gap: 12px; }
 
         .logo-icon {
-          width: 40px;
-          height: 40px;
+          width: 40px; height: 40px;
           background: linear-gradient(145deg, #6ee7a0, #22c55e);
-          border-radius: 12px;
-          display: flex;
-          align-items: center;
-          justify-content: center;
-          font-size: 20px;
-          box-shadow: 0 0 28px rgba(74,222,128,0.35), 0 2px 8px rgba(0,0,0,0.4);
+          border-radius: 12px; display: flex; align-items: center; justify-content: center;
+          font-size: 20px; box-shadow: 0 0 28px rgba(74,222,128,0.35), 0 2px 8px rgba(0,0,0,0.4);
         }
 
         .logo-name {
-  font-family: 'Instrument Serif', serif;
-  font-size: 32px;
-  letter-spacing: -0.4px;
-  color: #eeeae3;
-}
-
+          font-family: 'Instrument Serif', serif; font-size: 24px; letter-spacing: -0.4px; color: #eeeae3;
+        }
         .logo-name em { font-style: normal; color: #4ade80; }
 
         .back-btn {
-          background: rgba(238,234,227,0.06);
-          border: 1px solid rgba(238,234,227,0.1);
-          color: rgba(238,234,227,0.45);
-          padding: 9px 20px;
-          border-radius: 100px;
-          font-size: 13px;
-          font-family: 'DM Sans', sans-serif;
-          cursor: pointer;
-          transition: all 0.2s;
+          background: rgba(238,234,227,0.06); border: 1px solid rgba(238,234,227,0.1);
+          color: rgba(238,234,227,0.45); padding: 9px 20px; border-radius: 100px;
+          font-size: 13px; font-family: 'DM Sans', sans-serif; cursor: pointer; transition: all 0.2s;
         }
         .back-btn:hover { background: rgba(238,234,227,0.1); color: #eeeae3; }
 
         .hero { margin-bottom: 52px; }
-
         .hero h1 {
-  font-family: 'Instrument Serif', serif;
-  font-size: clamp(40px, 5vw, 60px);
-  line-height: 1.0;
-  letter-spacing: -2px;
-  margin-bottom: 16px;
-  color: #eeeae3;
-}
-
-        .hero h1 em {
-          font-style: italic;
-          color: #4ade80;
-          text-shadow: 0 0 60px rgba(74,222,128,0.3);
+          font-family: 'Instrument Serif', serif; font-size: clamp(52px, 7vw, 80px);
+          line-height: 1.0; letter-spacing: -2px; margin-bottom: 16px; color: #eeeae3;
         }
-
-        .hero p {
-          color: rgba(238,234,227,0.4);
-          font-size: 18px;
-          font-weight: 300;
-          letter-spacing: -0.2px;
-        }
+        .hero h1 em { font-style: italic; color: #4ade80; text-shadow: 0 0 60px rgba(74,222,128,0.3); }
+        .hero p { color: rgba(238,234,227,0.4); font-size: 18px; font-weight: 300; letter-spacing: -0.2px; }
 
         .dropzone {
-          border: 1.5px dashed rgba(238,234,227,0.13);
-          border-radius: 24px;
-          background: rgba(238,234,227,0.02);
-          min-height: 260px;
-          display: flex;
-          align-items: center;
-          justify-content: center;
-          cursor: pointer;
-          transition: all 0.25s;
-          overflow: hidden;
-          margin-bottom: 16px;
-          position: relative;
+          border: 1.5px dashed rgba(238,234,227,0.13); border-radius: 24px;
+          background: rgba(238,234,227,0.02); min-height: 260px;
+          display: flex; align-items: center; justify-content: center;
+          cursor: pointer; transition: all 0.25s; overflow: hidden; margin-bottom: 16px; position: relative;
         }
-
-        .dropzone:hover {
-          border-color: rgba(74,222,128,0.35);
-          background: rgba(74,222,128,0.025);
-        }
-
+        .dropzone:hover { border-color: rgba(74,222,128,0.35); background: rgba(74,222,128,0.025); }
         .dropzone.drag {
-          border-color: rgba(74,222,128,0.6);
-          background: rgba(74,222,128,0.05);
+          border-color: rgba(74,222,128,0.6); background: rgba(74,222,128,0.05);
           box-shadow: 0 0 60px rgba(74,222,128,0.08);
         }
 
         .dropzone-inner {
-          display: flex;
-          flex-direction: column;
-          align-items: center;
-          gap: 12px;
-          padding: 48px;
-          color: rgba(238,234,227,0.2);
-          text-align: center;
+          display: flex; flex-direction: column; align-items: center; gap: 12px;
+          padding: 48px; color: rgba(238,234,227,0.2); text-align: center;
         }
 
         .dz-icon {
-          width: 60px;
-          height: 60px;
-          border-radius: 16px;
-          background: rgba(238,234,227,0.04);
-          border: 1px solid rgba(238,234,227,0.08);
-          display: flex;
-          align-items: center;
-          justify-content: center;
-          font-size: 26px;
-          margin-bottom: 6px;
+          width: 60px; height: 60px; border-radius: 16px;
+          background: rgba(238,234,227,0.04); border: 1px solid rgba(238,234,227,0.08);
+          display: flex; align-items: center; justify-content: center; font-size: 26px; margin-bottom: 6px;
         }
-
         .dz-title { font-size: 15px; color: rgba(238,234,227,0.35); }
         .dz-sub { font-size: 13px; color: rgba(238,234,227,0.18); }
 
         .preview-img { width: 100%; height: 320px; object-fit: cover; display: block; }
-
         .preview-overlay {
-          position: absolute;
-          inset: 0;
+          position: absolute; inset: 0;
           background: linear-gradient(to top, rgba(6,6,8,0.55) 0%, transparent 50%);
-          display: flex;
-          align-items: flex-end;
-          padding: 20px;
+          display: flex; align-items: flex-end; padding: 20px;
         }
-
         .preview-badge {
-          background: rgba(6,6,8,0.75);
-          border: 1px solid rgba(74,222,128,0.25);
-          backdrop-filter: blur(12px);
-          padding: 7px 14px;
-          border-radius: 100px;
-          font-size: 13px;
-          color: #4ade80;
+          background: rgba(6,6,8,0.75); border: 1px solid rgba(74,222,128,0.25);
+          backdrop-filter: blur(12px); padding: 7px 14px; border-radius: 100px;
+          font-size: 13px; color: #4ade80;
         }
 
         .btn-upload {
-          width: 100%;
-          padding: 14px;
-          border-radius: 16px;
-          border: 1px solid rgba(238,234,227,0.1);
-          background: rgba(238,234,227,0.03);
-          color: rgba(238,234,227,0.55);
-          font-size: 15px;
-          font-family: 'DM Sans', sans-serif;
-          cursor: pointer;
-          transition: all 0.2s;
-          display: flex;
-          align-items: center;
-          justify-content: center;
-          gap: 10px;
-          margin-bottom: 24px;
-          letter-spacing: -0.1px;
+          width: 100%; padding: 14px; border-radius: 16px;
+          border: 1px solid rgba(238,234,227,0.1); background: rgba(238,234,227,0.03);
+          color: rgba(238,234,227,0.55); font-size: 15px; font-family: 'DM Sans', sans-serif;
+          cursor: pointer; transition: all 0.2s; display: flex; align-items: center;
+          justify-content: center; gap: 10px; margin-bottom: 24px; letter-spacing: -0.1px;
         }
-        .btn-upload:hover {
-          background: rgba(238,234,227,0.07);
-          border-color: rgba(238,234,227,0.18);
-          color: #eeeae3;
-        }
+        .btn-upload:hover { background: rgba(238,234,227,0.07); border-color: rgba(238,234,227,0.18); color: #eeeae3; }
 
-        .manual-input-row {
-          display: flex;
-          gap: 10px;
-          margin-bottom: 12px;
-        }
+        .divider { display: flex; align-items: center; gap: 16px; margin-bottom: 24px; }
+        .divider-line { flex: 1; height: 1px; background: rgba(238,234,227,0.07); }
+        .divider-text { font-size: 12px; color: rgba(238,234,227,0.2); letter-spacing: 0.08em; text-transform: uppercase; }
+
+        .manual-input-row { display: flex; gap: 10px; margin-bottom: 12px; }
 
         .manual-input {
-          flex: 1;
-          background: rgba(238,234,227,0.04);
-          border: 1px solid rgba(238,234,227,0.13);
-          border-radius: 14px;
-          padding: 14px 18px;
-          color: #eeeae3;
-          font-size: 15px;
-          font-family: 'DM Sans', sans-serif;
-          outline: none;
-          transition: border-color 0.2s;
+          flex: 1; background: rgba(238,234,227,0.04); border: 1px solid rgba(238,234,227,0.13);
+          border-radius: 14px; padding: 14px 18px; color: #eeeae3; font-size: 15px;
+          font-family: 'DM Sans', sans-serif; outline: none; transition: border-color 0.2s;
         }
         .manual-input::placeholder { color: rgba(238,234,227,0.2); }
         .manual-input:focus { border-color: rgba(74,222,128,0.4); }
 
         .btn-add {
-          padding: 14px 24px;
-          border-radius: 14px;
-          background: rgba(74,222,128,0.12);
-          border: 1px solid rgba(74,222,128,0.25);
-          color: #4ade80;
-          font-size: 15px;
-          font-family: 'DM Sans', sans-serif;
-          cursor: pointer;
-          transition: all 0.2s;
-          white-space: nowrap;
+          padding: 14px 24px; border-radius: 14px; background: rgba(74,222,128,0.12);
+          border: 1px solid rgba(74,222,128,0.25); color: #4ade80; font-size: 15px;
+          font-family: 'DM Sans', sans-serif; cursor: pointer; transition: all 0.2s; white-space: nowrap;
         }
         .btn-add:hover { background: rgba(74,222,128,0.2); border-color: rgba(74,222,128,0.45); }
 
         .chips { display: flex; flex-wrap: wrap; gap: 9px; margin-bottom: 40px; }
-
         .chip {
-          background: rgba(74,222,128,0.08);
-          border: 1px solid rgba(74,222,128,0.25);
-          border-radius: 100px;
-          padding: 7px 14px;
-          font-size: 13px;
-          color: #4ade80;
-          display: flex;
-          align-items: center;
-          gap: 8px;
+          background: rgba(74,222,128,0.08); border: 1px solid rgba(74,222,128,0.25);
+          border-radius: 100px; padding: 7px 14px; font-size: 13px; color: #4ade80;
+          display: flex; align-items: center; gap: 8px;
         }
-
         .chip-remove {
-          background: none;
-          border: none;
-          color: rgba(74,222,128,0.6);
-          cursor: pointer;
-          font-size: 14px;
-          padding: 0;
-          line-height: 1;
-          transition: color 0.15s;
+          background: none; border: none; color: rgba(74,222,128,0.6); cursor: pointer;
+          font-size: 14px; padding: 0; line-height: 1; transition: color 0.15s;
         }
         .chip-remove:hover { color: #4ade80; }
 
-        .divider {
-          display: flex;
-          align-items: center;
-          gap: 16px;
-          margin-bottom: 24px;
-        }
-        .divider-line { flex: 1; height: 1px; background: rgba(238,234,227,0.07); }
-        .divider-text { font-size: 12px; color: rgba(238,234,227,0.2); letter-spacing: 0.08em; text-transform: uppercase; }
-
         .section { margin-bottom: 40px; }
-
         .section-label {
-          font-size: 11px;
-          font-weight: 600;
-          letter-spacing: 0.14em;
-          color: rgba(238,234,227,0.28);
-          text-transform: uppercase;
-          margin-bottom: 14px;
+          font-size: 11px; font-weight: 600; letter-spacing: 0.14em;
+          color: rgba(238,234,227,0.28); text-transform: uppercase; margin-bottom: 14px;
         }
 
         .pills { display: flex; flex-wrap: wrap; gap: 9px; }
-
         .pill {
-          padding: 9px 20px;
-          border-radius: 100px;
-          border: 1px solid rgba(238,234,227,0.11);
-          background: transparent;
-          color: rgba(238,234,227,0.4);
-          font-size: 14px;
-          font-family: 'DM Sans', sans-serif;
-          cursor: pointer;
-          transition: all 0.2s;
-          text-transform: capitalize;
-          letter-spacing: -0.1px;
+          padding: 9px 20px; border-radius: 100px; border: 1px solid rgba(238,234,227,0.11);
+          background: transparent; color: rgba(238,234,227,0.4); font-size: 14px;
+          font-family: 'DM Sans', sans-serif; cursor: pointer; transition: all 0.2s;
+          text-transform: capitalize; letter-spacing: -0.1px;
         }
         .pill:hover { border-color: rgba(238,234,227,0.28); color: rgba(238,234,227,0.85); }
         .pill.active-diet { background: #eeeae3; color: #060608; border-color: #eeeae3; font-weight: 500; }
         .pill.active-allergy { background: rgba(239,68,68,0.12); border-color: rgba(239,68,68,0.35); color: #fca5a5; }
+        .pill.active-religious { background: rgba(250,204,21,0.12); border-color: rgba(250,204,21,0.35); color: #fde68a; }
 
         .btn-primary {
-          width: 100%;
-          padding: 20px;
-          border-radius: 18px;
+          width: 100%; padding: 20px; border-radius: 18px;
           background: linear-gradient(135deg, #4ade80 0%, #16a34a 100%);
-          color: #060608;
-          font-size: 17px;
-          font-weight: 600;
-          font-family: 'DM Sans', sans-serif;
-          border: none;
-          cursor: pointer;
-          transition: all 0.25s;
+          color: #060608; font-size: 17px; font-weight: 600; font-family: 'DM Sans', sans-serif;
+          border: none; cursor: pointer; transition: all 0.25s;
           box-shadow: 0 4px 32px rgba(74,222,128,0.28), 0 1px 0 rgba(255,255,255,0.1) inset;
-          letter-spacing: -0.3px;
-          position: relative;
-          overflow: hidden;
+          letter-spacing: -0.3px; position: relative; overflow: hidden;
         }
         .btn-primary::after {
-          content: '';
-          position: absolute;
-          inset: 0;
-          background: linear-gradient(135deg, rgba(255,255,255,0.12), transparent);
-          pointer-events: none;
+          content: ''; position: absolute; inset: 0;
+          background: linear-gradient(135deg, rgba(255,255,255,0.12), transparent); pointer-events: none;
         }
         .btn-primary:hover { transform: translateY(-2px); box-shadow: 0 8px 40px rgba(74,222,128,0.4), 0 1px 0 rgba(255,255,255,0.1) inset; }
         .btn-primary:active { transform: translateY(0); }
         .btn-primary:disabled { opacity: 0.2; cursor: not-allowed; transform: none; box-shadow: none; }
 
+        .warning-box {
+          margin-bottom: 24px; padding: 16px 20px;
+          background: rgba(250,204,21,0.06); border: 1px solid rgba(250,204,21,0.25);
+          border-radius: 16px; display: flex; flex-direction: column; gap: 8px;
+        }
+        .warning-title {
+          font-size: 11px; font-weight: 600; letter-spacing: 0.12em;
+          text-transform: uppercase; color: rgba(253,230,138,0.6); margin-bottom: 4px;
+        }
+        .warning-item { font-size: 14px; color: #fde68a; }
+        .warning-hint { font-size: 12px; color: rgba(253,230,138,0.4); margin-top: 4px; }
+
         .error {
-          color: #fca5a5;
-          font-size: 13px;
-          text-align: center;
-          margin-bottom: 16px;
-          padding: 12px;
-          background: rgba(239,68,68,0.08);
-          border: 1px solid rgba(239,68,68,0.2);
-          border-radius: 12px;
+          color: #fca5a5; font-size: 13px; text-align: center; margin-bottom: 16px; padding: 12px;
+          background: rgba(239,68,68,0.08); border: 1px solid rgba(239,68,68,0.2); border-radius: 12px;
         }
 
         .loading-screen {
-          display: flex;
-          flex-direction: column;
-          align-items: center;
-          justify-content: center;
-          min-height: 60vh;
-          gap: 24px;
-          text-align: center;
+          display: flex; flex-direction: column; align-items: center; justify-content: center;
+          min-height: 60vh; gap: 24px; text-align: center;
         }
 
         .spinner {
-          width: 72px;
-          height: 72px;
-          border-radius: 20px;
-          background: rgba(74,222,128,0.07);
-          border: 1.5px solid rgba(74,222,128,0.25);
-          display: flex;
-          align-items: center;
-          justify-content: center;
-          font-size: 32px;
-          animation: breathe 2s ease-in-out infinite;
+          width: 72px; height: 72px; border-radius: 20px; background: rgba(74,222,128,0.07);
+          border: 1.5px solid rgba(74,222,128,0.25); display: flex; align-items: center;
+          justify-content: center; font-size: 32px; animation: breathe 2s ease-in-out infinite;
           box-shadow: 0 0 40px rgba(74,222,128,0.1);
         }
 
@@ -517,15 +370,9 @@ export default function Home() {
         }
 
         .ingredients-grid { display: grid; grid-template-columns: repeat(3, 1fr); gap: 10px; margin-bottom: 40px; }
-
         .ingredient-card {
-          display: flex;
-          align-items: center;
-          gap: 10px;
-          background: rgba(238,234,227,0.03);
-          border: 1px solid rgba(238,234,227,0.07);
-          border-radius: 14px;
-          padding: 13px 16px;
+          display: flex; align-items: center; gap: 10px; background: rgba(238,234,227,0.03);
+          border: 1px solid rgba(238,234,227,0.07); border-radius: 14px; padding: 13px 16px;
           animation: fadeUp 0.35s ease both;
         }
 
@@ -538,15 +385,8 @@ export default function Home() {
         .ingredient-card span { font-size: 13px; color: rgba(238,234,227,0.7); text-transform: capitalize; }
 
         .recipe-eyebrow {
-          font-size: 11px;
-          font-weight: 600;
-          letter-spacing: 0.14em;
-          text-transform: uppercase;
-          color: #4ade80;
-          margin-bottom: 12px;
-          display: flex;
-          align-items: center;
-          gap: 8px;
+          font-size: 11px; font-weight: 600; letter-spacing: 0.14em; text-transform: uppercase;
+          color: #4ade80; margin-bottom: 12px; display: flex; align-items: center; gap: 8px;
         }
         .recipe-eyebrow::after { content: ''; flex: 1; height: 1px; background: rgba(74,222,128,0.2); }
 
@@ -589,30 +429,10 @@ export default function Home() {
             <div className="logo-icon">🧊</div>
             <span className="logo-name">Fridge<em>IQ</em></span>
           </div>
-          <div style={{ display: "flex", gap: "12px" }}>
-  <Link href="/feed" style={{
-    padding: "14px 32px", fontSize: "15px",
-    border: "1px solid rgba(238,234,227,0.2)",
-    color: "rgba(238,234,227,0.7)", fontSize: "15px",
-    textDecoration: "none", transition: "all 0.2s",
-    fontFamily: "'DM Sans', sans-serif", fontWeight: 500,
-    letterSpacing: "-0.2px"
-  }}
-  onMouseEnter={e => { e.target.style.borderColor = "rgba(238,234,227,0.5)"; e.target.style.color = "#eeeae3"; }}
-  onMouseLeave={e => { e.target.style.borderColor = "rgba(238,234,227,0.2)"; e.target.style.color = "rgba(238,234,227,0.7)"; }}
-  >Browse recipes</Link>
-  <Link href="/create-recipe" style={{
-    padding: "14px 32px", fontSize: "15px",
-    border: "1px solid rgba(238,234,227,0.2)",
-    color: "rgba(238,234,227,0.7)", fontSize: "15px",
-    textDecoration: "none", transition: "all 0.2s",
-    fontFamily: "'DM Sans', sans-serif", fontWeight: 500,
-    letterSpacing: "-0.2px"
-  }}
-  onMouseEnter={e => { e.target.style.borderColor = "rgba(238,234,227,0.5)"; e.target.style.color = "#eeeae3"; }}
-  onMouseLeave={e => { e.target.style.borderColor = "rgba(238,234,227,0.2)"; e.target.style.color = "rgba(238,234,227,0.7)"; }}
-  >Create recipe</Link>
-</div>
+          <div className="flex gap-4">
+            <Link href="/feed" className="text-blue-500 hover:underline">Browse shared recipes</Link>
+            <Link href="/create-recipe" className="text-green-500 hover:underline">Create custom recipe</Link>
+          </div>
           {step !== "upload" && (
             <button className="back-btn" onClick={reset}>← Start over</button>
           )}
@@ -625,7 +445,6 @@ export default function Home() {
               <p>Scan a photo, type your ingredients, or both.</p>
             </div>
 
-            {/* Photo upload */}
             <div
               className={`dropzone${dragging ? " drag" : ""}`}
               onClick={() => !imagePreview && fileInputRef.current.click()}
@@ -666,14 +485,12 @@ export default function Home() {
               📁 Upload photo
             </button>
 
-            {/* Divider */}
             <div className="divider">
               <div className="divider-line" />
               <span className="divider-text">or add ingredients manually</span>
               <div className="divider-line" />
             </div>
 
-            {/* Manual ingredient input */}
             <div className="manual-input-row">
               <input
                 className="manual-input"
@@ -686,7 +503,6 @@ export default function Home() {
               <button className="btn-add" onClick={addManualIngredient}>+ Add</button>
             </div>
 
-            {/* Ingredient chips */}
             {manualIngredients.length > 0 && (
               <div className="chips">
                 {manualIngredients.map((ing, i) => (
@@ -703,7 +519,6 @@ export default function Home() {
               </div>
             )}
 
-            {/* Dietary + allergy options */}
             <div className="section">
               <p className="section-label">Dietary goal</p>
               <div className="pills">
@@ -718,6 +533,21 @@ export default function Home() {
               <div className="pills">
                 {COMMON_ALLERGIES.map((a) => (
                   <button key={a} className={`pill${allergies.includes(a) ? " active-allergy" : ""}`} onClick={() => toggleAllergy(a)}>{a}</button>
+                ))}
+              </div>
+            </div>
+
+            <div className="section">
+              <p className="section-label">Religious / Cultural</p>
+              <div className="pills">
+                {RELIGIOUS_DIETS.map((r) => (
+                  <button
+                    key={r}
+                    className={`pill${religiousDiet === r ? " active-religious" : ""}`}
+                    onClick={() => setReligiousDiet(religiousDiet === r ? null : r)}
+                  >
+                    {r}
+                  </button>
                 ))}
               </div>
             </div>
@@ -749,15 +579,28 @@ export default function Home() {
               <h1>Found <em>{ingredients.length}</em><br />ingredients</h1>
               <p>Looking good — ready to generate your recipe?</p>
             </div>
+
+            {warnings.length > 0 && (
+              <div className="warning-box">
+                <p className="warning-title">⚠️ Dietary conflicts detected</p>
+                {warnings.map((w, i) => (
+                  <p key={i} className="warning-item">— {w}</p>
+                ))}
+                <p className="warning-hint">You can still generate a recipe, but these ingredients may not match your preferences.</p>
+              </div>
+            )}
+
             <div className="ingredients-grid">
               {ingredients.map((ing, i) => (
                 <div className="ingredient-card" key={i} style={{ animationDelay: `${i * 35}ms` }}>
                   <div className="ing-dot" />
-                  <span>{typeof ing === "string" ? ing : `${ing.name}${ing.quantity ? ` · ${ing.quantity}${ing.unit || ""}` : ""}`}</span>
+                  <span>{formatIngredient(ing)}</span>
                 </div>
               ))}
             </div>
+
             {error && <p className="error">{error}</p>}
+
             <div className="mb-4">
               <label className="flex items-center gap-2">
                 <input
@@ -796,7 +639,7 @@ export default function Home() {
                     {recipe.ingredients.map((ing, i) => (
                       <li key={i}>
                         <span className="ing-dash">—</span>
-                        {typeof ing === "string" ? ing : `${ing.quantity && ing.unit && ing.unit !== "pieces" ? `${ing.quantity} ${ing.unit} ` : ing.quantity && ing.unit !== "pieces" ? `${ing.quantity} ` : ""}${ing.name ?? ing}`.trim()}
+                        {formatIngredient(ing)}
                       </li>
                     ))}
                   </ul>
