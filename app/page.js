@@ -529,8 +529,19 @@ export default function Home() {
                 <>
                   <img src={imagePreview} alt="Fridge" className="preview-img" />
                   <div className="preview-overlay">
-                    <span className="preview-badge">✓ Photo ready — click Scan to continue</span>
-                  </div>
+  <span className="preview-badge">✓ Photo ready — click Scan to continue</span>
+  <button
+    onClick={(e) => { e.stopPropagation(); setImage(null); setImagePreview(null); }}
+    style={{
+      position: "absolute", top: 12, right: 12,
+      background: "rgba(6,6,8,0.75)", border: "1px solid rgba(238,234,227,0.15)",
+      color: "rgba(238,234,227,0.7)", borderRadius: "100px",
+      padding: "6px 14px", fontSize: "13px", cursor: "pointer"
+    }}
+  >
+    ✕ Remove
+  </button>
+</div>
                 </>
               ) : (
                 <div className="dropzone-inner">
@@ -541,7 +552,7 @@ export default function Home() {
               )}
             </div>
 
-            <input ref={fileInputRef} type="file" accept="image/*" onChange={(e) => handleImage(e.target.files[0])} />
+            <input ref={fileInputRef} type="file" accept="image/*" onChange={(e) => handleImage(e.target.files[0])} onClick={(e) => { e.target.value = null; }} />
 
             <button className="btn-upload" onClick={() => fileInputRef.current.click()}>
               📁 Upload photo
