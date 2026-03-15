@@ -1,5 +1,5 @@
 'use client'
-import { useState, useEffect } from 'react'
+import { useState, useEffect, useCallback } from 'react'
 import { useParams } from 'next/navigation'
 import Link from 'next/link'
 
@@ -12,11 +12,7 @@ export default function SharedRecipe() {
   const [comment, setComment] = useState('')
   const [submitting, setSubmitting] = useState(false)
 
-  useEffect(() => {
-    fetchRecipe()
-  }, [id])
-
-  const fetchRecipe = async () => {
+  const fetchRecipe = useCallback(async () => {
     try {
       const res = await fetch(`/api/recipes/${id}`)
       if (!res.ok) throw new Error('Recipe not found')
@@ -27,7 +23,11 @@ export default function SharedRecipe() {
     } finally {
       setLoading(false)
     }
-  }
+  }, [id])
+
+  useEffect(() => {
+    fetchRecipe()
+  }, [fetchRecipe])
 
   const submitRating = async () => {
     if (rating === 0) return
